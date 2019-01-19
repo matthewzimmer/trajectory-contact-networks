@@ -28,8 +28,6 @@ class GeolifeTrajectories(PipelineOp):
                 for filepath in plt_files:
                     user_trajectories = np.loadtxt(filepath, delimiter=',', skiprows=6, usecols=range(0, 5),
                                                    converters={4: lambda d: float(d)})
-                    trajectories[uid] = user_trajectories
-                if len(trajectories) is 2:
-                    break
+                    trajectories[uid] = user_trajectories[0:2]
             self.__trajectories = trajectories
         return trajectories
