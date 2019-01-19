@@ -2,7 +2,6 @@ import numpy as np
 
 from app.lib.datasets import GeolifeTrajectories
 
-
 class Trajectory:
     def __init__(self, t):
         self.lat = t[0]
@@ -31,7 +30,12 @@ def contact(T0, T1, delta):
                 contacts.append(ContactPoint(Trajectory(T0[i]), Trajectory(T1[i])))
     return contacts
 
-
+def contact_combos(user_trajectories):
+	contact_points = []
+	for i in user_trajectories:
+		for j in user_trajectories:
+			contact_points.append(contact(i,j,delta))
+            
 def main():
     user_trajectories = GeolifeTrajectories().load()
 
