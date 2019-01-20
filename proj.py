@@ -23,13 +23,11 @@ class ContactPoint(Trajectory):
         self.t = np.mean([t1.t, t2.t])
 
 
-def contact(T0, T1, delta=(-1, -1)):
+def contact(u_i, u_j, data, delta=(-1, -1)):
     contacts = []
     ds, dt = delta
-    for i in range(len(T0)):
-        for j in range(len(T1)):
-            t0 = T0[i]
-            t1 = T1[j]
+    for t0 in data.trajectories(u_i):
+        for t1 in data.trajectories(u_j):
             tdelta = Trajectory(abs(t0-t1))
             if dt < 0 or tdelta.t <= dt:
                 if ds < 0 or (tdelta.lon <= ds and tdelta.lat <= ds):
@@ -38,27 +36,26 @@ def contact(T0, T1, delta=(-1, -1)):
     return contacts
 
 
-def contact_combos(user_trajectories, delta):
+def contact_combos(data, delta):
     combos = set()
-    d = user_trajectories
-    keys = np.asarray(list(d.keys()))
-    combo_keys = combinations(keys, 2)
-    for i, j in combo_keys:
-        contacts = contact(user_trajectories[i], user_trajectories[j], delta)
+    users = data.users()
+    user_combos = combinations(users, 2)
+    for i, j in user_combos:
+        contacts = contact(i, j, data, delta)
         for c in contacts:
             combos.add((i, j, c.lat, c.lon, c.t))
     return combos
 
 
 def main():
-    user_trajectories = GeolifeTrajectories().load()
+    data = GeolifeTrajectories().load()
+    users = data.users()
     d0 = [100, 300]
     d1 = [500, 600]
     d2 = [1000, 1200]
 
     for d in [d0, d1, d2]:
-        # contacts = contact(np.array([[1, 3, 0]]), np.array([[2, 4, 0]]), d)
-        combos = contact_combos(user_trajectories, d)
+        combos = contact_combos(data, d)
         print(d)
         for c in combos:
             print(c)
