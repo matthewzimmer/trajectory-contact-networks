@@ -23,14 +23,15 @@ class ContactPoint(Trajectory):
         self.t = np.mean([t1.t, t2.t])
 
 
-def contact(u_i, u_j, data, delta=(-1, -1)):
+def contact(u_i, u_j, data, delta):
     contacts = []
     ds, dt = delta
     for t0 in data.trajectories(u_i):
         for t1 in data.trajectories(u_j):
             tdelta = Trajectory(abs(t0-t1))
-            if dt < 0 or tdelta.t <= dt:
-                if ds < 0 or (tdelta.lon <= ds and tdelta.lat <= ds):
+            if tdelta.t <= dt:
+                if tdelta.lon <= ds and tdelta.lat <= ds:
+                    print('{} {} {} {} {}'.format(u_i, u_j, tdelta, Trajectory(t0), Trajectory(t1)))
                     cp = ContactPoint(Trajectory(t0), Trajectory(t1))
                     contacts.append(cp)
     return contacts
@@ -49,7 +50,6 @@ def contact_combos(data, delta):
 
 def main():
     data = GeolifeTrajectories().load()
-    users = data.users()
     d0 = [100, 300]
     d1 = [500, 600]
     d2 = [1000, 1200]

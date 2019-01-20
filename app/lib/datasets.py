@@ -1,8 +1,10 @@
+import datetime
 import glob
 import os
 import re
 
 import numpy as np
+import pytz
 
 from app.lib.pipeline_ops import PipelineOp
 
@@ -39,14 +41,10 @@ class GeolifeTrajectories(PipelineOp):
             self.__trajectories = trajectories
         return trajectories
 
-    def __load_user_trajectories(self, uid):
-        trajectories = []
-        plt_files = glob.glob('app/data/geolife/Data/{}/Trajectory/*.plt'.format(uid))
+    @staticmethod
+    def __load_user_trajectories(uid):
+        plt_files = np.sort(glob.glob('app/data/geolife/Data/{}/Trajectory/*.plt'.format(uid)))
         for filepath in plt_files:
-            user_trajectories = np.loadtxt(filepath, delimiter=',', skiprows=6, usecols=range(0, 5),
-                                           converters={4: lambda d: float(d)})
+            user_trajectories = np.genfromtxt(filepath, delimiter=',', dtype=float, skip_header=6, usecols=range(0, 5), converters={4: lambda days: (datetime.datetime(1899, 12, 30, tzinfo=pytz.utc) + datetime.timedelta(days=float(days))).timestamp()})
             for t in user_trajectories:
-                trajectories.append(t)
-        trajectories = np.array(trajectories)[0:2]
-        for t in trajectories:
-            yield t
+                yield t
