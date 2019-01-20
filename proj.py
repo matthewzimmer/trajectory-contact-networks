@@ -3,6 +3,8 @@ from itertools import combinations
 
 from app.lib.datasets import GeolifeTrajectories
 
+import networkx as nx
+import matplotlib as plt
 
 class Trajectory:
     def __init__(self, t, uid=None):
@@ -56,6 +58,14 @@ def contact_combos(data, delta):
             combos.add((i, j, c.lat, c.lon, c.t))
     return combos
 
+def grapher(combos):
+    G = nx.Graph()
+    for c in combos:
+        G.add_node(*c)
+    # G.number_of_nodes()
+    # G.number_of_edges()
+    nx.draw(G)
+    plt.show()
 
 def main():
     data = GeolifeTrajectories().load()
@@ -70,7 +80,8 @@ def main():
             combos = contact_combos(data, d)
             print(d)
             for c in combos:
-                print(c)
+                grapher(c)
+                # print(c)
             print('\n\n\n')
 
 if __name__ == "__main__":
