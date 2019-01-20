@@ -45,6 +45,7 @@ class GeolifeTrajectories(PipelineOp):
     def __load_user_trajectories(uid):
         plt_files = np.sort(glob.glob('app/data/geolife/Data/{}/Trajectory/*.plt'.format(uid)))
         for filepath in plt_files:
-            user_trajectories = np.genfromtxt(filepath, delimiter=',', dtype=float, skip_header=6, usecols=range(0, 5), converters={4: lambda days: (datetime.datetime(1899, 12, 30, tzinfo=pytz.utc) + datetime.timedelta(days=float(days))).timestamp()})
+            user_trajectories = np.genfromtxt(filepath, delimiter=',', dtype=float, skip_header=6, usecols=range(0, 5), converters={4: lambda days: (float(days) * 24 * 60 * 60 )})
+            # (datetime.datetime(1899, 12, 30, tzinfo=pytz.utc) + datetime.timedelta(days=float(days))).timestamp()})
             for t in user_trajectories:
                 yield t

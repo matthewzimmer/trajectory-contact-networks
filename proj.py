@@ -1,3 +1,5 @@
+
+import math as m
 import numpy as np
 from itertools import combinations
 
@@ -28,7 +30,14 @@ class ContactPoint(Trajectory):
         self.t = np.mean([t0.t, t1.t])
 
     def dist_apart(self):
-        return round(np.math.sqrt(abs(self.t1.lon - self.t0.lon)**2 + abs(self.t1.lat - self.t0.lat)**2), 5)
+        earthRadiusKm = 6371;
+        dLat = m.radians(self.t1.lat - self.t0.lat);
+        dLon = m.radians(self.t1.lon - self.t0.lon);
+        lat1 = m.radians(self.t0.lat);
+        lat2 = m.radians(self.t1.lat);
+        a = m.sin(dLat/2) * m.sin(dLat/2) + m.sin(dLon/2) * m.sin(dLon/2) * m.cos(lat1) * m.cos(lat2);
+        c = 2 * m.atan2(m.sqrt(a), m.sqrt(1-a))
+        return (earthRadiusKm * c * 1000)
 
     def __str__(self):
         return '[user_i: {}  user_j: {}  dist: {}  time: {}  lat: {}  lon: {}  alt: {}]'.format(self.t0.uid, self.t1.uid, self.dist_apart(), self.t, self.lat, self.lon, self.alt)
@@ -80,8 +89,7 @@ def main():
             combos = contact_combos(data, d)
             print(d)
             for c in combos:
-                grapher(c)
-                # print(c)
+                print(c)
             print('\n\n\n')
 
 if __name__ == "__main__":
