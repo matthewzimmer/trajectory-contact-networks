@@ -1,12 +1,15 @@
 
-import math as m
+from math import radians, cos, sin, asin, sqrt
 import numpy as np
+
 from itertools import combinations
+import ast
 
 from app.lib.datasets import GeolifeTrajectories
+from app.lib.graph import Graph, Vertex, Edge
 
 import networkx as nx
-import matplotlib as plt
+import matplotlib.pyplot as plt
 
 class Trajectory:
     def __init__(self, t, uid=None):
@@ -30,14 +33,16 @@ class ContactPoint(Trajectory):
         self.t = np.mean([t0.t, t1.t])
 
     def dist_apart(self):
-        earthRadiusKm = 6371;
-        dLat = m.radians(self.t1.lat - self.t0.lat);
-        dLon = m.radians(self.t1.lon - self.t0.lon);
-        lat1 = m.radians(self.t0.lat);
-        lat2 = m.radians(self.t1.lat);
-        a = m.sin(dLat/2) * m.sin(dLat/2) + m.sin(dLon/2) * m.sin(dLon/2) * m.cos(lat1) * m.cos(lat2);
-        c = 2 * m.atan2(m.sqrt(a), m.sqrt(1-a))
-        return (earthRadiusKm * c * 1000)
+        # convert decimal degrees to radians
+        lon1, lat1, lon2, lat2 = map(radians, [self.t0.lon, self.t0.lat, self.t1.lon, self.t1.lat])
+        # haversine formula
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+        c = 2 * asin(sqrt(a))
+        # Radius of earth in kilometers is 6371
+        km = 6371 * c #6373?
+        return km * 1000
 
     def __str__(self):
         return '[user_i: {}  user_j: {}  dist: {}  time: {}  lat: {}  lon: {}  alt: {}]'.format(self.t0.uid, self.t1.uid, self.dist_apart(), self.t, self.lat, self.lon, self.alt)
@@ -49,10 +54,9 @@ def contact(user_i, user_j, data, delta):
     for t0 in data.trajectories(user_i):
         for t1 in data.trajectories(user_j):
             tdelta = Trajectory(abs(t0-t1))
-            if dt <= 0 or tdelta.t <= dt:
-                cp = ContactPoint(Trajectory(t0, user_i), Trajectory(t1, user_j))
-                if ds <= 0 or (cp.dist_apart() <= ds):
-                    print(cp)
+            cp = ContactPoint(Trajectory(t0, user_i), Trajectory(t1, user_j))
+            if (cp.dist_apart() <= ds):
+                if tdelta.t <= dt:
                     contacts.append(cp)
     return contacts
 
@@ -70,27 +74,38 @@ def contact_combos(data, delta):
 def grapher(combos):
     G = nx.Graph()
     for c in combos:
-        G.add_node(*c)
-    # G.number_of_nodes()
-    # G.number_of_edges()
+        c = ast.literal_eval(c) #convert to dict
+        G.add_edge(c[user_i],c[user_j],c[dist])
+    # G.add_node(c[0])
+    # G.add_node(c[1])
+    # G.add_edge(c[0], c[1], weight = c[2])
+    G.number_of_nodes()
+    G.number_of_edges()
     nx.draw(G)
     plt.show()
 
+    # edges, vertices = [],[]
+    # E = Edge(Vertex(c[0]),Vertex(c[1]))
+    # edges.append(E)
+    # for V in verts:
+    #     vertices.append(Vertex(Vertex(c[0],edges)))
+    # Gr = Graph(vertices)
+    # print(Gr.total_weight())
+
+
 def main():
     data = GeolifeTrajectories().load()
-    combos = contact_combos(data, [0, 0])
+    # combos = contact_combos(data, [0, 0])
+    # if False:
+    d0 = [100, 300]
+    d1 = [500, 600]
+    d2 = [1000, 1200]
 
-    if False:
-        d0 = [100, 300]
-        d1 = [500, 600]
-        d2 = [1000, 1200]
-
-        for d in [d0, d1, d2]:
-            combos = contact_combos(data, d)
-            print(d)
-            for c in combos:
-                print(c)
-            print('\n\n\n')
+    for d in [d0, d1, d2]:
+        combos = contact_combos(data, d)
+        for c in combos:
+            print(c)
+        print('\n\n\n')
 
 if __name__ == "__main__":
     main()

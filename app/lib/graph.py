@@ -10,14 +10,15 @@ class Graph:
 
 
 class Vertex:
-    def __init__(self, edges=[]):
+    def __init__(self, user_id, edges=[]):
+        self.user_id = user_id
         self.edges = edges
 
     def total_weight(self):
         return np.sum([e.weight for e in self.edges])
 
 
-class Edge:
+class Edge(Vertex):
     def __init(self, vertex1, vertex2, weight):
         self.v1 = vertex1
         self.v2 = vertex2
