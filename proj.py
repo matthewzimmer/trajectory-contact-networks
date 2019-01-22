@@ -45,7 +45,7 @@ class ContactPoint(TrajectoryPoint):
         dlon = lon2 - lon1
         dlat = lat2 - lat1
         a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-        c = 2 * np.math.atan2(sqrt(a), sqrt(1 - a))
+        c = 2 * asin(sqrt(a))
         # Radius of earth in kilometers is 6371
         km = 6371 * c  # 6373?
         return km * 1000
