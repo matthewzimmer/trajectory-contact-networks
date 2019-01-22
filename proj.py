@@ -1,9 +1,11 @@
-
+import datetime
 from math import radians, cos, sin, asin, sqrt
 import numpy as np
 
 from itertools import combinations
 import ast
+
+import pytz
 
 from app.lib.datasets import GeolifeTrajectories
 from app.lib.graph import Graph, Vertex, Edge
@@ -11,21 +13,25 @@ from app.lib.graph import Graph, Vertex, Edge
 import networkx as nx
 import matplotlib.pyplot as plt
 
-class Trajectory:
+
+class TrajectoryPoint:
     def __init__(self, t, uid=None):
         self.lat = t[0]
         self.lon = t[1]
         self.alt = t[3]
-        self.t = t[4]
+        self.days = t[4]
+        self.datetime = (datetime.datetime(1899, 12, 30, tzinfo=pytz.utc) + datetime.timedelta(days=self.days))
+        self.t = self.datetime.timestamp()
+        self.t2 = (self.days * 24 * 60 * 60)
         self.uid = uid
 
     def __str__(self):
         return '[lat: {}  lon: {}  alt: {}  time: {}]'.format(self.lat, self.lon, self.alt, self.t)
 
 
-class ContactPoint(Trajectory):
+class ContactPoint(TrajectoryPoint):
     def __init__(self, t0, t1):
-        Trajectory.__init__(self, [0, 0, 0, 0, 0])
+        TrajectoryPoint.__init__(self, [0, 0, 0, 0, 0])
         self.t0 = t0
         self.t1 = t1
         self.lat = np.mean([t0.lat, t1.lat])
@@ -38,26 +44,51 @@ class ContactPoint(Trajectory):
         # haversine formula
         dlon = lon2 - lon1
         dlat = lat2 - lat1
-        a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
-        c = 2 * asin(sqrt(a))
+        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+        c = 2 * np.math.atan2(sqrt(a), sqrt(1 - a))
         # Radius of earth in kilometers is 6371
-        km = 6371 * c #6373?
+        km = 6371 * c  # 6373?
         return km * 1000
 
     def __str__(self):
-        return '[user_i: {}  user_j: {}  dist: {}  time: {}  lat: {}  lon: {}  alt: {}]'.format(self.t0.uid, self.t1.uid, self.dist_apart(), self.t, self.lat, self.lon, self.alt)
+        return '[user_i: {}  user_j: {}  dist: {}  time: {}  lat: {}  lon: {}  alt: {}]'.format(self.t0.uid,
+                                                                                                self.t1.uid,
+                                                                                                self.dist_apart(),
+                                                                                                self.t, self.lat,
+                                                                                                self.lon, self.alt)
 
 
 def contact(user_i, user_j, data, delta):
     contacts = []
     ds, dt = delta
-    for t0 in data.trajectories(user_i):
-        for t1 in data.trajectories(user_j):
-            tdelta = Trajectory(abs(t0-t1))
-            cp = ContactPoint(Trajectory(t0, user_i), Trajectory(t1, user_j))
-            if (cp.dist_apart() <= ds):
-                if tdelta.t <= dt:
-                    contacts.append(cp)
+    total_count = 0
+    counter = 0
+    # for pnt_i, traj_plt_i in data.trajectories(user_i):
+    for traj_plt_i in data.load_user_trajectory_plts(user_i):
+        next_i_plt = False
+        for pnt_i in data.load_trajectory_plt_points(traj_plt_i):
+            if next_i_plt:
+                break
+
+            pnt_i = TrajectoryPoint(pnt_i, user_i)
+
+            for traj_plt_j in data.load_user_trajectory_plts(user_j):
+                counter = 0
+                for pnt_j in data.load_trajectory_plt_points(traj_plt_j):
+                    counter = counter + 1
+                    total_count = total_count + 1
+
+                    pnt_j = TrajectoryPoint(pnt_j, user_j)
+                    tdelta = abs(pnt_i.t - pnt_j.t)
+                    cp = ContactPoint(pnt_i, pnt_j)
+                    if tdelta <= dt:
+                        if cp.dist_apart() <= ds:
+                            print('CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(tdelta, cp.dist_apart(), user_i, user_j, total_count, traj_plt_i, traj_plt_j))
+                            contacts.append(cp)
+                    else:
+                        if counter == 1:
+                            next_i_plt = True
+                            break
     return contacts
 
 
@@ -71,11 +102,12 @@ def contact_combos(data, delta):
             combos.add((i, j, c.lat, c.lon, c.t))
     return combos
 
+
 def grapher(combos):
     G = nx.Graph()
     for c in combos:
-        c = ast.literal_eval(c) #convert to dict
-        G.add_edge(c[user_i],c[user_j],c[dist])
+        c = ast.literal_eval(c)  # convert to dict
+        G.add_edge(c[user_i], c[user_j], c[dist])
     # G.add_node(c[0])
     # G.add_node(c[1])
     # G.add_edge(c[0], c[1], weight = c[2])
@@ -95,17 +127,20 @@ def grapher(combos):
 
 def main():
     data = GeolifeTrajectories().load()
-    # combos = contact_combos(data, [0, 0])
-    # if False:
-    d0 = [100, 300]
-    d1 = [500, 600]
-    d2 = [1000, 1200]
 
-    for d in [d0, d1, d2]:
+    # [ds, dt] ==> [meters from each other,  seconds apart]
+    deltas = []
+    # deltas.append([100, 300])
+    # deltas.append([500, 600])
+    deltas.append([1000, 1200])
+    # deltas.append([1000, 1200])
+
+    for d in deltas:
         combos = contact_combos(data, d)
         for c in combos:
             print(c)
         print('\n\n\n')
+
 
 if __name__ == "__main__":
     main()

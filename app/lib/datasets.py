@@ -30,22 +30,24 @@ class GeolifeTrajectories(PipelineOp):
         if uid is None:
             return self.__trajectories
         else:
-            return self.__load_user_trajectories(uid)
+            return self.load_user_trajectory_points(uid)
 
     def __load_trajectories(self):
         trajectories = self.__trajectories
         if len(trajectories) <= 0:
             self.__users = np.sort(np.array([uid for uid in os.listdir('app/data/geolife/Data') if re.findall('\d{3}', uid)]))
             for uid in self.__users:
-                trajectories[uid] = trajectories.get(uid, self.__load_user_trajectories(uid))
+                trajectories[uid] = trajectories.get(uid, self.load_user_trajectory_points(uid))
             self.__trajectories = trajectories
         return trajectories
 
-    @staticmethod
-    def __load_user_trajectories(uid):
-        plt_files = np.sort(glob.glob('app/data/geolife/Data/{}/Trajectory/*.plt'.format(uid)))
-        for filepath in plt_files:
-            user_trajectories = np.genfromtxt(filepath, delimiter=',', dtype=float, skip_header=6, usecols=range(0, 5), converters={4: lambda days: (float(days) * 24 * 60 * 60 )})
-            # (datetime.datetime(1899, 12, 30, tzinfo=pytz.utc) + datetime.timedelta(days=float(days))).timestamp()})
-            for t in user_trajectories:
-                yield t
+    def load_user_trajectory_points(self, uid):
+        for trajectory_plt in self.load_user_trajectory_plts(uid):
+            for point in self.load_trajectory_plt_points(trajectory_plt):
+                yield (point, trajectory_plt)
+
+    def load_user_trajectory_plts(self, uid):
+        return np.sort(glob.glob('app/data/geolife/Data/{}/Trajectory/*.plt'.format(uid)))
+
+    def load_trajectory_plt_points(self, trajectory_plt):
+        return np.genfromtxt(trajectory_plt, delimiter=',', dtype=float, skip_header=6, usecols=range(0, 5))
