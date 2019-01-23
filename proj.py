@@ -148,6 +148,8 @@ def main():
             total = contact_point_data['total']
             print('Loaded {} pickled contact points for ds={}, dt={}\n\n'.format(total, ds, dt))
 
+        if not grapher(contact_points):
+            return
         largest_component, ave_degree = grapher(contact_points) #save Graph
         largest_comps.append(largest_component)
         ave_degrees.append(ave_degree)
