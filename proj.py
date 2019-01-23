@@ -6,11 +6,9 @@ import numpy as np
 from math import radians, cos, sin, asin, sqrt
 from itertools import combinations
 
-
 from app.lib.data_serializer import DataSerializer
 from app.lib.datasets import GeolifeTrajectories
 from app.lib.graph import grapher, save_results
-
 
 
 class TrajectoryPoint:
@@ -57,17 +55,18 @@ class ContactPoint(TrajectoryPoint):
         return self.__dist_apart
 
     def __str__(self):
-        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  traj_i: {}  traj_j: {}]'.format(
-            self.p1.uid,
-            self.p2.uid,
-            self.dist_apart(),
-            abs(self.p1.t - self.p2.t),
-            self.t,
-            self.lat,
-            self.lon,
-            self.alt,
-            self.traj_plt_p1,
-            self.traj_plt_p2)
+        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  ' \
+               'traj_i: {}  traj_j: {}]'.format(
+                self.p1.uid,
+                self.p2.uid,
+                self.dist_apart(),
+                abs(self.p1.t - self.p2.t),
+                self.t,
+                self.lat,
+                self.lon,
+                self.alt,
+                self.traj_plt_p1,
+                self.traj_plt_p2)
 
 
 def contact(user_i, user_j, data, delta):
@@ -92,7 +91,15 @@ def contact(user_i, user_j, data, delta):
 
                     tdelta = abs(pnt_i.t - pnt_j.t)
                     cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
-                    print('t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(tdelta, cp.dist_apart(), user_i, user_j, total_count, traj_plt_i, traj_plt_j))
+                    print('t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
+                        tdelta,
+                        cp.dist_apart(),
+                        user_i,
+                        user_j,
+                        total_count,
+                        traj_plt_i,
+                        traj_plt_j))
+
                     if tdelta <= dt:
                         if cp.dist_apart() <= ds:
                             print('    CONTACT!')
@@ -129,7 +136,6 @@ def contact_combos(data, delta):
     return combos
 
 
-
 def main():
     data = GeolifeTrajectories().load()
 
@@ -150,10 +156,10 @@ def main():
 
         if not grapher(contact_points):
             return
-        largest_component, ave_degree = grapher(contact_points) #save Graph
+        largest_component, ave_degree = grapher(contact_points)
         largest_comps.append(largest_component)
         ave_degrees.append(ave_degree)
-    save_results(largest_comps, ave_degrees) # save Results
+    save_results(largest_comps, ave_degrees)
 
 
 if __name__ == "__main__":
