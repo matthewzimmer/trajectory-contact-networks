@@ -1,14 +1,18 @@
 import datetime
-
-import pytz
+from math import radians, cos, sin, asin, sqrt
 import numpy as np
 
-from math import radians, cos, sin, asin, sqrt
 from itertools import combinations
+import ast
+
+import pytz
 
 from app.lib.data_serializer import DataSerializer
 from app.lib.datasets import GeolifeTrajectories
-from app.lib.graph import grapher, save_results
+from app.lib.graph import Graph, Vertex, Edge
+
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 class TrajectoryPoint:
@@ -55,23 +59,24 @@ class ContactPoint(TrajectoryPoint):
         return self.__dist_apart
 
     def __str__(self):
-        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  ' \
-               'traj_i: {}  traj_j: {}]'.format(
-                self.p1.uid,
-                self.p2.uid,
-                self.dist_apart(),
-                abs(self.p1.t - self.p2.t),
-                self.t,
-                self.lat,
-                self.lon,
-                self.alt,
-                self.traj_plt_p1,
-                self.traj_plt_p2)
+        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  traj_i: {}  traj_j: {}]'.format(
+            self.p1.uid,
+            self.p2.uid,
+            self.dist_apart(),
+            abs(self.p1.t - self.p2.t),
+            self.t,
+            self.lat,
+            self.lon,
+            self.alt,
+            self.traj_plt_p1,
+            self.traj_plt_p2)
 
 
-def contact(user_i, user_j, data, delta):
-    contacts = []
+def detect_contact_points(user_i, user_j, data, delta):
     ds, dt = delta
+    contact_points = load_contact_points(ds, dt)
+    if contact_points is None:
+        contact_points = []
     total_count = 0
     for traj_plt_i in data.load_user_trajectory_plts(user_i):
         for traj_plt_j in data.load_user_trajectory_plts(user_j):
@@ -90,22 +95,70 @@ def contact(user_i, user_j, data, delta):
                     total_count = total_count + 1
 
                     tdelta = abs(pnt_i.t - pnt_j.t)
-                    cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
-                    print('t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
-                        tdelta,
-                        cp.dist_apart(),
-                        user_i,
-                        user_j,
-                        total_count,
-                        traj_plt_i,
-                        traj_plt_j))
-
                     if tdelta <= dt:
+                        cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
                         if cp.dist_apart() <= ds:
-                            print('    CONTACT!')
+                            print(
+                                'CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
+                                    tdelta,
+                                    cp.dist_apart(),
+                                    user_i,
+                                    user_j,
+                                    total_count,
+                                    traj_plt_i,
+                                    traj_plt_j))
+                            contact_points.append(cp)
+                            save_contact_points(ds, dt, contact_points)
+                    else:
+                        if pnt_j_count == 1:
+                            # The first point in user j's trajectory is not within dt seconds so we
+                            # signal to move to the next trajectory for user j.
+                            next_j_plt = True
+                            break  # Move to the next PLT for user j
+    return contact_points
+
+
+def detect_contact(user_i, user_j, data, delta):
+    ds, dt = delta
+    contacts = load_contacts(ds, dt)
+    if contacts is None:
+        contacts = []
+    total_count = 0
+    for traj_plt_i in data.load_user_trajectory_plts(user_i):
+        for traj_plt_j in data.load_user_trajectory_plts(user_j):
+            pnt_i_count = 0
+            next_j_plt = False
+            for pnt_i in data.load_trajectory_plt_points(traj_plt_i):
+                if next_j_plt:
+                    break
+
+                pnt_i = TrajectoryPoint(pnt_i, user_i)
+                pnt_i_count = pnt_i_count + 1
+                pnt_j_count = 0
+                for pnt_j in data.load_trajectory_plt_points(traj_plt_j):
+                    pnt_j = TrajectoryPoint(pnt_j, user_j)
+                    pnt_j_count = pnt_j_count + 1
+                    total_count = total_count + 1
+
+                    tdelta = abs(pnt_i.t - pnt_j.t)
+                    if tdelta <= dt:
+                        cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
+                        if cp.dist_apart() <= ds:
+                            print(
+                                'CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
+                                    tdelta,
+                                    cp.dist_apart(),
+                                    user_i,
+                                    user_j,
+                                    total_count,
+                                    traj_plt_i,
+                                    traj_plt_j))
                             contacts.append(cp)
-                            if len(contacts) % 1000 == 0:
-                                save_contacts(ds, dt, contacts)
+
+                            save_contacts(ds, dt, contacts)
+                            return [cp]
+
+
                     else:
                         if pnt_j_count == 1:
                             # The first point in user j's trajectory is not within dt seconds so we
@@ -118,11 +171,31 @@ def contact(user_i, user_j, data, delta):
 
 def save_contacts(ds, dt, contacts):
     DataSerializer.save_data({'ds': ds, 'dt': dt, 'total': len(contacts), 'contacts': contacts},
+                             'app/data/contacts/Contacts_ds{}_dt{}.pickle'.format(ds, dt))
+
+
+def save_contact_points(ds, dt, contact_points):
+    DataSerializer.save_data({'ds': ds, 'dt': dt, 'total': len(contact_points), 'contact_points': contact_points},
                              'app/data/contacts/ContactPoints_ds{}_dt{}.pickle'.format(ds, dt))
 
 
-def load_contacts(ds, dt):
+def load_contact_points(ds, dt):
     return DataSerializer.reload_data('app/data/contacts/ContactPoints_ds{}_dt{}.pickle'.format(ds, dt))
+
+
+def load_contacts(ds, dt):
+    return DataSerializer.reload_data('app/data/contacts/Contacts_ds{}_dt{}.pickle'.format(ds, dt))
+
+
+def contact_point_combos(data, delta):
+    combos = set()
+    users = data.users()
+    user_combos = combinations(users, 2)
+    for i, j in user_combos:
+        contact_points = detect_contact_points(i, j, data, delta)
+        for c in contact_points:
+            combos.add((i, j, c.lat, c.lon, c.t))
+    return combos
 
 
 def contact_combos(data, delta):
@@ -130,36 +203,78 @@ def contact_combos(data, delta):
     users = data.users()
     user_combos = combinations(users, 2)
     for i, j in user_combos:
-        contacts = contact(i, j, data, delta)
+        contacts = detect_contact(i, j, data, delta)
         for c in contacts:
             combos.add((i, j, c.lat, c.lon, c.t))
     return combos
+
+
+def grapher(combos):
+    G = nx.Graph()
+    for c in combos:
+        c = ast.literal_eval(c)  # convert to dict
+        G.add_edge(c[user_i], c[user_j], c[dist])
+    # G.add_node(c[0])
+    # G.add_node(c[1])
+    # G.add_edge(c[0], c[1], weight = c[2])
+    G.number_of_nodes()
+    G.number_of_edges()
+    nx.draw(G)
+    plt.show()
+
+    # edges, vertices = [],[]
+    # E = Edge(Vertex(c[0]),Vertex(c[1]))
+    # edges.append(E)
+    # for V in verts:
+    #     vertices.append(Vertex(Vertex(c[0],edges)))
+    # Gr = Graph(vertices)
+    # print(Gr.total_weight())
+
+
+def generate_contacts(data, deltas):
+    ignore_cache = False
+    for d in deltas:
+        ds, dt = d
+        contact_data = load_contacts(ds, dt)
+        if ignore_cache or contact_data is None:
+            contacts = contact_combos(data, d)
+        else:
+            contacts = contact_data['contacts']
+            total = contact_data['total']
+            print('Loaded {} pickled contacts for ds={}, dt={}\n\n'.format(total, ds, dt))
+        for c in contacts:
+            print(c)
+        print('\n\n\n')
+
+
+def generate_contact_points(data, deltas):
+    ignore_cache = False
+    for d in deltas:
+        ds, dt = d
+        contact_point_data = load_contact_points(ds, dt)
+        if ignore_cache or contact_point_data is None:
+            contact_points = contact_point_combos(data, d)
+        else:
+            contact_points = contact_point_data['contacts']
+            total = contact_point_data['total']
+            print('Loaded {} pickled contact points for ds={}, dt={}\n\n'.format(total, ds, dt))
+        for cp in contact_points:
+            print(cp)
+        print('\n\n\n')
 
 
 def main():
     data = GeolifeTrajectories().load()
 
     # [ds, dt] ==> [meters from each other,  seconds apart]
-    deltas = [[100, 300], [500, 600], [1000, 1200]]
+    deltas = []
+    # deltas.append([100, 300])
+    # deltas.append([500, 600])
+    deltas.append([1000, 1200])
+    # deltas.append([1000, 1200])
 
-    ignore_cache = False
-    largest_comps, ave_degrees = [], []
-    for d in deltas:
-        ds, dt = d
-        contact_point_data = load_contacts(ds, dt)
-        if ignore_cache or contact_point_data is None:
-            contact_points = contact_combos(data, d)
-        else:
-            contact_points = contact_point_data['contacts']
-            total = contact_point_data['total']
-            print('Loaded {} pickled contact points for ds={}, dt={}\n\n'.format(total, ds, dt))
-
-        if not grapher(contact_points):
-            return
-        largest_component, ave_degree = grapher(contact_points)
-        largest_comps.append(largest_component)
-        ave_degrees.append(ave_degree)
-    save_results(largest_comps, ave_degrees)
+    # generate_contact_points(data, deltas)
+    generate_contacts(data, deltas)
 
 
 if __name__ == "__main__":
