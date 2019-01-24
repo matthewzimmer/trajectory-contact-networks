@@ -9,7 +9,7 @@ import pytz
 from app.lib.pipeline_ops import PipelineOp
 
 
-class GeolifeTrajectories(PipelineOp):
+class GeolifeData(PipelineOp):
     def __init__(self):
         PipelineOp.__init__(self)
         self.__users = []
@@ -35,7 +35,9 @@ class GeolifeTrajectories(PipelineOp):
     def __load_trajectories(self):
         trajectories = self.__trajectories
         if len(trajectories) <= 0:
-            self.__users = np.sort(np.array([uid for uid in os.listdir('app/data/geolife/Data') if re.findall('\d{3}', uid)]))
+            self.__users = np.sort(np.array([
+                uid for uid in os.listdir('app/data/geolife/Data') if re.findall('\d{3}', uid)
+            ]))
             for uid in self.__users:
                 trajectories[uid] = trajectories.get(uid, self.load_user_trajectory_points(uid))
             self.__trajectories = trajectories
@@ -46,8 +48,10 @@ class GeolifeTrajectories(PipelineOp):
             for point in self.load_trajectory_plt_points(trajectory_plt):
                 yield (point, trajectory_plt)
 
-    def load_user_trajectory_plts(self, uid):
+    @staticmethod
+    def load_user_trajectory_plts(uid):
         return np.sort(glob.glob('app/data/geolife/Data/{}/Trajectory/*.plt'.format(uid)))
 
-    def load_trajectory_plt_points(self, trajectory_plt):
+    @staticmethod
+    def load_trajectory_plt_points(trajectory_plt):
         return np.genfromtxt(trajectory_plt, delimiter=',', dtype=float, skip_header=6, usecols=range(0, 5))
