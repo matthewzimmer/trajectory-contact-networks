@@ -1,75 +1,9 @@
-import datetime
-from math import radians, cos, sin, asin, sqrt
-import numpy as np
-
 from itertools import combinations
-import ast
-
-import pytz
 
 from app.lib.data_serializer import DataSerializer
-from app.lib.datasets import GeolifeTrajectories
-from app.lib.graph import Graph, Vertex, Edge
-
-import networkx as nx
-import matplotlib.pyplot as plt
-
-
-class TrajectoryPoint:
-    def __init__(self, pnt, uid=None):
-        self.pnt = pnt
-        self.uid = uid
-        self.lat = pnt[0]
-        self.lon = pnt[1]
-        self.alt = pnt[3]
-        self.days = pnt[4]
-        self.datetime = (datetime.datetime(1899, 12, 30, tzinfo=pytz.utc) + datetime.timedelta(days=self.days))
-        self.t = self.datetime.timestamp()
-        self.t2 = (self.days * 24 * 60 * 60)
-
-    def __str__(self):
-        return '[lat: {}  lon: {}  alt: {}  time: {}]'.format(self.lat, self.lon, self.alt, self.t)
-
-
-class ContactPoint(TrajectoryPoint):
-    def __init__(self, p1, p2, traj_plt_p1, traj_plt_p2):
-        TrajectoryPoint.__init__(self, [0, 0, 0, 0, 0])
-        self.p1 = p1
-        self.p2 = p2
-        self.traj_plt_p1 = traj_plt_p1
-        self.traj_plt_p2 = traj_plt_p2
-        self.lat = np.mean([p1.lat, p2.lat])
-        self.lon = np.mean([p1.lon, p2.lon])
-        self.alt = np.mean([p1.alt, p2.alt])
-        self.t = np.mean([p1.t, p2.t])
-        self.__dist_apart = None
-
-    def dist_apart(self):
-        if self.__dist_apart is None:
-            # convert decimal degrees to radians
-            lon1, lat1, lon2, lat2 = map(radians, [self.p1.lon, self.p1.lat, self.p2.lon, self.p2.lat])
-            # haversine formula
-            dlon = lon2 - lon1
-            dlat = lat2 - lat1
-            a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-            c = 2 * asin(sqrt(a))
-            # Radius of earth in kilometers is 6371
-            km = 6371 * c
-            self.__dist_apart = km * 1000
-        return self.__dist_apart
-
-    def __str__(self):
-        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  traj_i: {}  traj_j: {}]'.format(
-            self.p1.uid,
-            self.p2.uid,
-            self.dist_apart(),
-            abs(self.p1.t - self.p2.t),
-            self.t,
-            self.lat,
-            self.lon,
-            self.alt,
-            self.traj_plt_p1,
-            self.traj_plt_p2)
+from app.lib.datasets import GeolifeData
+from app.lib.graph import grapher, save_results
+from app.lib.points import TrajectoryPoint, ContactPoint
 
 
 def detect_contact_points(user_i, user_j, data, delta):
@@ -165,8 +99,7 @@ def detect_contact(user_i, user_j, data, delta):
                             # signal to move to the next trajectory for user j.
                             next_j_plt = True
                             break  # Move to the next PLT for user j
-    save_contacts(ds, dt, contacts)
-    return contacts
+    return []
 
 
 def save_contacts(ds, dt, contacts):
@@ -194,7 +127,7 @@ def contact_point_combos(data, delta):
     for i, j in user_combos:
         contact_points = detect_contact_points(i, j, data, delta)
         for c in contact_points:
-            combos.add((i, j, c.lat, c.lon, c.t))
+            combos.add(c)
     return combos
 
 
@@ -205,30 +138,8 @@ def contact_combos(data, delta):
     for i, j in user_combos:
         contacts = detect_contact(i, j, data, delta)
         for c in contacts:
-            combos.add((i, j, c.lat, c.lon, c.t))
+            combos.add(c)
     return combos
-
-
-def grapher(combos):
-    G = nx.Graph()
-    for c in combos:
-        c = ast.literal_eval(c)  # convert to dict
-        G.add_edge(c[user_i], c[user_j], c[dist])
-    # G.add_node(c[0])
-    # G.add_node(c[1])
-    # G.add_edge(c[0], c[1], weight = c[2])
-    G.number_of_nodes()
-    G.number_of_edges()
-    nx.draw(G)
-    plt.show()
-
-    # edges, vertices = [],[]
-    # E = Edge(Vertex(c[0]),Vertex(c[1]))
-    # edges.append(E)
-    # for V in verts:
-    #     vertices.append(Vertex(Vertex(c[0],edges)))
-    # Gr = Graph(vertices)
-    # print(Gr.total_weight())
 
 
 def generate_contacts(data, deltas):
@@ -263,18 +174,44 @@ def generate_contact_points(data, deltas):
         print('\n\n\n')
 
 
+def generate_graph(data, deltas):
+    largest_comps, ave_degrees = [], []
+    results_delta = []
+    for d in deltas:
+        ds, dt = d
+        contact_data = load_contacts(ds, dt)
+        contacts = []
+        if contact_data:
+            contacts = contact_data['contacts']
+            total = contact_data['total']
+            print('Loaded {} pickled contacts for ds={}, dt={}\n\n'.format(total, ds, dt))
+
+            contacts = list(map(lambda c: c.tuplize(), contacts))
+        else:
+            contacts = [
+                ('003', '004', 40.007548, 116.32172650000001, 1224785351.0000029),
+                ('002', '005', 45.007548, 16.32172650000001, 14785351.0000029),
+                ('002', '001', 45.007548, 16.32172650000001, 14785351.0000029)
+            ]
+        largest_component, ave_degree = grapher(contacts)
+        largest_comps.append(largest_component)
+        ave_degrees.append(ave_degree)
+        results_delta.append('{}m {}s'.format(ds, dt))
+    save_results(largest_comps, ave_degrees, results_delta)
+
+
 def main():
-    data = GeolifeTrajectories().load()
+    data = GeolifeData().load()
 
     # [ds, dt] ==> [meters from each other,  seconds apart]
     deltas = []
-    # deltas.append([100, 300])
-    # deltas.append([500, 600])
+    deltas.append([100, 300])
+    deltas.append([500, 600])
     deltas.append([1000, 1200])
-    # deltas.append([1000, 1200])
 
     # generate_contact_points(data, deltas)
-    generate_contacts(data, deltas)
+    # generate_contacts(data, deltas)
+    generate_graph(data, deltas)
 
 
 if __name__ == "__main__":
