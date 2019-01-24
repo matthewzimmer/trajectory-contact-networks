@@ -7,11 +7,8 @@ def grapher(combos):
         print("NO NODES")
         return
     graph = nx.Graph()
-    a_combos = [('003', '004', 40.007548, 116.32172650000001, 1224785351.0000029),
-                         ('002', '005', 45.007548, 16.32172650000001, 14785351.0000029),
-                         ('002', '001', 45.007548, 16.32172650000001, 14785351.0000029)]
     for c in combos:
-        graph.add_edge(c.p1.uid, c.p2.uid, weight=1)
+        graph.add_edge(c[0], c[1], weight=1)
     # print("Number of Nodes: " + str(G.number_of_nodes()))
     # print("Number of edges: " + str(G.number_of_edges()))
     # print("Node degrees: " + str(G.degree()))
