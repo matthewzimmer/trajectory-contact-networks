@@ -1,25 +1,54 @@
-import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
-class Graph:
-    def __init__(self, vertices=[]):
-        self.vertices = vertices
+def grapher(combos):
+    if not combos:
+        print("NO NODES")
+        return
+    graph = nx.Graph()
+    a_combos = [('003', '004', 40.007548, 116.32172650000001, 1224785351.0000029),
+                         ('002', '005', 45.007548, 16.32172650000001, 14785351.0000029),
+                         ('002', '001', 45.007548, 16.32172650000001, 14785351.0000029)]
+    for c in combos:
+        graph.add_edge(c.p1.uid, c.p2.uid, weight=1)
+    # print("Number of Nodes: " + str(G.number_of_nodes()))
+    # print("Number of edges: " + str(G.number_of_edges()))
+    # print("Node degrees: " + str(G.degree()))
+    largest_comp = find_largest_component(graph)
+    avg_degree = find_average_degree(graph)
+    nx.draw_spectral(graph, with_labels=True)  # spectral circular random
+    plt.savefig('app/viz/con_components.png', bbox_inches='tight')
+    plt.close()
+    return largest_comp, avg_degree
 
-    def total_weight(self):
-        return np.sum([v.total_weight() for v in self.vertices])
+
+def find_largest_component(graph):
+    component_size = [len(c) for c in sorted(nx.connected_components(graph), key=len, reverse=True)]
+    return str(max(component_size))
+    # print("Largest Component Size: " + str(max(component_size)))
+    # print("Component List: " + str(max(nx.connected_components(Graph), key=len)))
 
 
-class Vertex:
-    def __init__(self, user_id, edges=[]):
-        self.user_id = user_id
-        self.edges = edges
+def find_average_degree(graph):
+    degree_list = []
+    for n in graph.nodes():
+        degree_list.append(graph.degree(n))
+    return str(sum(degree_list) / graph.number_of_nodes())
+    # print("Average degree of Nodes " + str(sum(listr)/Graph.number_of_nodes()))
 
-    def total_weight(self):
-        return np.sum([e.weight for e in self.edges])
 
+def save_results(largest_comps, ave_degrees, deltas):
+    if largest_comps or ave_degrees != 'NULL':
+        plt.plot(deltas, largest_comps, label="Largest Component")
+        plt.title("Size of Largest Connected Component")
+        plt.ylabel("Largest Component Size")
+        plt.xlabel("Delta settings")
+        plt.savefig('app/viz/Largest_Component_Results.png', bbox_inches='tight')
+        # plt.show()
 
-class Edge(Vertex):
-    def __init(self, vertex1, vertex2, weight):
-        self.v1 = vertex1
-        self.v2 = vertex2
-        self.weight = weight
+        plt.plot(deltas, ave_degrees, label="Average Degree")
+        plt.title("Average Degree of Nodes")
+        plt.ylabel("Mean Degree")
+        plt.xlabel("Delta settings")
+        plt.savefig('app/viz/Ave_Degree_Results.png', bbox_inches='tight')

@@ -1,18 +1,14 @@
 import datetime
-from math import radians, cos, sin, asin, sqrt
-import numpy as np
-
-from itertools import combinations
-import ast
 
 import pytz
+import numpy as np
+
+from math import radians, cos, sin, asin, sqrt
+from itertools import combinations
 
 from app.lib.data_serializer import DataSerializer
 from app.lib.datasets import GeolifeTrajectories
-from app.lib.graph import Graph, Vertex, Edge
-
-import networkx as nx
-import matplotlib.pyplot as plt
+from app.lib.graph import grapher, save_results
 
 
 class TrajectoryPoint:
@@ -59,17 +55,18 @@ class ContactPoint(TrajectoryPoint):
         return self.__dist_apart
 
     def __str__(self):
-        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  traj_i: {}  traj_j: {}]'.format(
-            self.p1.uid,
-            self.p2.uid,
-            self.dist_apart(),
-            abs(self.p1.t - self.p2.t),
-            self.t,
-            self.lat,
-            self.lon,
-            self.alt,
-            self.traj_plt_p1,
-            self.traj_plt_p2)
+        return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  ' \
+               'traj_i: {}  traj_j: {}]'.format(
+                self.p1.uid,
+                self.p2.uid,
+                self.dist_apart(),
+                abs(self.p1.t - self.p2.t),
+                self.t,
+                self.lat,
+                self.lon,
+                self.alt,
+                self.traj_plt_p1,
+                self.traj_plt_p2)
 
 
 def detect_contact_points(user_i, user_j, data, delta):
@@ -193,7 +190,7 @@ def contact_point_combos(data, delta):
     for i, j in user_combos:
         contact_points = detect_contact_points(i, j, data, delta)
         for c in contact_points:
-            combos.add((i, j, c.lat, c.lon, c.t))
+            combos.add(c)
     return combos
 
 
@@ -204,30 +201,8 @@ def contact_combos(data, delta):
     for i, j in user_combos:
         contacts = detect_contact(i, j, data, delta)
         for c in contacts:
-            combos.add((i, j, c.lat, c.lon, c.t))
+            combos.add(c)
     return combos
-
-
-def grapher(combos):
-    G = nx.Graph()
-    for c in combos:
-        c = ast.literal_eval(c)  # convert to dict
-        G.add_edge(c[user_i], c[user_j], c[dist])
-    # G.add_node(c[0])
-    # G.add_node(c[1])
-    # G.add_edge(c[0], c[1], weight = c[2])
-    G.number_of_nodes()
-    G.number_of_edges()
-    nx.draw(G)
-    plt.show()
-
-    # edges, vertices = [],[]
-    # E = Edge(Vertex(c[0]),Vertex(c[1]))
-    # edges.append(E)
-    # for V in verts:
-    #     vertices.append(Vertex(Vertex(c[0],edges)))
-    # Gr = Graph(vertices)
-    # print(Gr.total_weight())
 
 
 def generate_contacts(data, deltas):
@@ -262,6 +237,27 @@ def generate_contact_points(data, deltas):
         print('\n\n\n')
 
 
+def generate_graph(data, deltas):
+    ignore_cache = False
+    largest_comps, ave_degrees = [], []
+    results_delta = []
+    for d in deltas:
+        ds, dt = d
+        contact_data = load_contacts(ds, dt)
+        if contact_data:
+            contacts = contact_data['contacts']
+            total = contact_data['total']
+            print('Loaded {} pickled contacts for ds={}, dt={}\n\n'.format(total, ds, dt))
+
+            if not grapher(contacts):
+                return
+            largest_component, ave_degree = grapher(contacts)
+            largest_comps.append(largest_component)
+            ave_degrees.append(ave_degree)
+            results_delta.append('{}m {}s'.format(ds, dt))
+    save_results(largest_comps, ave_degrees, results_delta)
+
+
 def main():
     data = GeolifeTrajectories().load()
 
@@ -270,10 +266,10 @@ def main():
     # deltas.append([100, 300])
     # deltas.append([500, 600])
     deltas.append([1000, 1200])
-    # deltas.append([1000, 1200])
 
     # generate_contact_points(data, deltas)
-    generate_contacts(data, deltas)
+    # generate_contacts(data, deltas)
+    generate_graph(data, deltas)
 
 
 if __name__ == "__main__":
