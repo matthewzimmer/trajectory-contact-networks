@@ -165,8 +165,7 @@ def detect_contact(user_i, user_j, data, delta):
                             # signal to move to the next trajectory for user j.
                             next_j_plt = True
                             break  # Move to the next PLT for user j
-    save_contacts(ds, dt, contacts)
-    return contacts
+    return []
 
 
 def save_contacts(ds, dt, contacts):
