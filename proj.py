@@ -29,20 +29,19 @@ def detect_contact_points(user_i, user_j, data, delta):
                     total_count = total_count + 1
 
                     tdelta = abs(pnt_i.t - pnt_j.t)
-                    if tdelta <= dt:
-                        cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
-                        if cp.dist_apart() <= ds:
-                            print(
-                                'CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
-                                    tdelta,
-                                    cp.dist_apart(),
-                                    user_i,
-                                    user_j,
-                                    total_count,
-                                    traj_plt_i,
-                                    traj_plt_j))
-                            contact_points.append(cp)
-                            save_contact_points(ds, dt, contact_points)
+                    cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
+                    if tdelta <= dt and cp.dist_apart() <= ds:
+                        print(
+                            'CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
+                                tdelta,
+                                cp.dist_apart(),
+                                user_i,
+                                user_j,
+                                total_count,
+                                traj_plt_i,
+                                traj_plt_j))
+                        contact_points.append(cp)
+                        save_contact_points(ds, dt, contact_points)
                     else:
                         if pnt_j_count == 1:
                             # The first point in user j's trajectory is not within dt seconds so we
@@ -75,24 +74,21 @@ def detect_contact(user_i, user_j, data, delta):
                     total_count = total_count + 1
 
                     tdelta = abs(pnt_i.t - pnt_j.t)
-                    if tdelta <= dt:
-                        cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
-                        if cp.dist_apart() <= ds:
-                            print(
-                                'CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
-                                    tdelta,
-                                    cp.dist_apart(),
-                                    user_i,
-                                    user_j,
-                                    total_count,
-                                    traj_plt_i,
-                                    traj_plt_j))
-                            contacts.append(cp)
+                    cp = ContactPoint(pnt_i, pnt_j, traj_plt_i, traj_plt_j)
+                    if tdelta <= dt and cp.dist_apart() <= ds:
+                        print(
+                            'CONTACT:  t: {}    dist: {}    ui: {}    uj: {}    tot: {}    plt_i: {}    plt_j: {}'.format(
+                                tdelta,
+                                cp.dist_apart(),
+                                user_i,
+                                user_j,
+                                total_count,
+                                traj_plt_i,
+                                traj_plt_j))
+                        contacts.append(cp)
 
-                            save_contacts(ds, dt, contacts)
-                            return [cp]
-
-
+                        save_contacts(ds, dt, contacts)
+                        return [cp]
                     else:
                         if pnt_j_count == 1:
                             # The first point in user j's trajectory is not within dt seconds so we
