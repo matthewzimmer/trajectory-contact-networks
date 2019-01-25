@@ -22,9 +22,7 @@ Check out codeenvy online c virtual environment.
 # Instructions
 
 The goal of this task is to process GPS trajectory data with time information, 
-create contact networks from it and summarize properties of these networks. 
-The task is to be completed in 72 hours (3 days) and solutions should
-be submitted to pbogdanov@albany.edu (see the sections below for details.)
+create contact networks from it and summarize properties of these networks.
 
 ### 1 From trajectories to networks
 #### 1.1 Trajectories and their intersection
