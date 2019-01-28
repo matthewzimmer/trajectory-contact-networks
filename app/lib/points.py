@@ -18,7 +18,7 @@ class TrajectoryPoint:
         self.t2 = (self.days * 24 * 60 * 60)
 
     def __str__(self):
-        return '[lat: {}  lon: {}  alt: {}  time: {}]'.format(self.lat, self.lon, self.alt, self.t)
+        return '[lat: {}  lon: {}  alt: {}  time: {}  datetime: {}]'.format(self.lat, self.lon, self.alt, self.t, self.datetime)
 
 
 class ContactPoint(TrajectoryPoint):

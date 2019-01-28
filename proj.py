@@ -12,18 +12,55 @@ def detect_contact_points(user_i, user_j, data, delta):
     if contact_points is None:
         contact_points = []
     total_count = 0
-    for traj_plt_i in data.load_user_trajectory_plts(user_i):
-        for traj_plt_j in data.load_user_trajectory_plts(user_j):
+
+    user_i_trajectory_plts = data.load_user_trajectory_plts(user_i)
+    user_j_trajectory_plts = data.load_user_trajectory_plts(user_j)
+
+    first_point_i = TrajectoryPoint(data.load_trajectory_plt_points(user_i_trajectory_plts[0])[0], user_i)
+    end_point_i = TrajectoryPoint(data.load_trajectory_plt_points(user_i_trajectory_plts[-1])[-1], user_i)
+
+    first_point_j = TrajectoryPoint(data.load_trajectory_plt_points(user_j_trajectory_plts[0])[0], user_j)
+    end_point_j = TrajectoryPoint(data.load_trajectory_plt_points(user_j_trajectory_plts[-1])[-1], user_j)
+
+    # if first_point_i after end_point_j or end_point_i before first_point_j: break
+    if first_point_i.t > end_point_j.t + dt:
+        print("Skipped user!")
+        return
+    if end_point_i.t + dt < first_point_j.t:
+        print("Skipped user!")
+        return
+
+    for traj_plt_i in user_i_trajectory_plts:
+        for traj_plt_j in user_j_trajectory_plts:
+
             pnt_i_count = 0
             next_j_plt = False
-            for pnt_i in data.load_trajectory_plt_points(traj_plt_i):
+
+            plt_pts_i = data.load_trajectory_plt_points(traj_plt_i)
+            plt_pts_j = data.load_trajectory_plt_points(traj_plt_j)
+
+            first_point_i = TrajectoryPoint(plt_pts_i[0], user_i)
+            end_point_i = TrajectoryPoint(plt_pts_i[-1], user_i)
+
+            first_point_j = TrajectoryPoint(plt_pts_j[0], user_j)
+            end_point_j = TrajectoryPoint(plt_pts_j[-1], user_j)
+
+            # if first_point_i after end_point_j or end_point_i before first_point_j: break
+            if first_point_i.t > end_point_j.t + dt:
+                print("{}: skipped 1 {} {}".format(total_count, traj_plt_i, traj_plt_j))
+                continue
+            if end_point_i.t + dt < first_point_j.t:
+                print("{}: skipped 2".format(total_count))
+                break
+
+            for pnt_i in plt_pts_i:
                 if next_j_plt:
                     break
-
                 pnt_i = TrajectoryPoint(pnt_i, user_i)
                 pnt_i_count = pnt_i_count + 1
                 pnt_j_count = 0
-                for pnt_j in data.load_trajectory_plt_points(traj_plt_j):
+
+                for pnt_j in plt_pts_j:
                     pnt_j = TrajectoryPoint(pnt_j, user_j)
                     pnt_j_count = pnt_j_count + 1
                     total_count = total_count + 1
@@ -57,18 +94,36 @@ def detect_contact(user_i, user_j, data, delta):
     if contacts is None:
         contacts = []
     total_count = 0
+    # if data.load_user_trajectory_plts(user_i):
     for traj_plt_i in data.load_user_trajectory_plts(user_i):
         for traj_plt_j in data.load_user_trajectory_plts(user_j):
             pnt_i_count = 0
             next_j_plt = False
-            for pnt_i in data.load_trajectory_plt_points(traj_plt_i):
+
+            plt_pts_i = data.load_trajectory_plt_points(traj_plt_i)
+            plt_pts_j = data.load_trajectory_plt_points(traj_plt_j)
+
+            first_point_i = TrajectoryPoint(plt_pts_i[0], user_i)
+            end_point_i = TrajectoryPoint(plt_pts_i[-1], user_i)
+
+            first_point_j = TrajectoryPoint(plt_pts_j[0], user_j)
+            end_point_j = TrajectoryPoint(plt_pts_j[-1], user_j)
+
+            # if first_point_i after end_point_j or end_point_i before first_point_j: break
+            if first_point_i.t > end_point_j.t + dt:
+                print("{}: skipped 1 {} {}".format(total_count, traj_plt_i, traj_plt_j))
+                continue
+            if end_point_i.t + dt < first_point_j.t:
+                print("{}: skipped 2".format(total_count))
+                break
+
+            for pnt_i in plt_pts_i:
                 if next_j_plt:
                     break
-
                 pnt_i = TrajectoryPoint(pnt_i, user_i)
                 pnt_i_count = pnt_i_count + 1
                 pnt_j_count = 0
-                for pnt_j in data.load_trajectory_plt_points(traj_plt_j):
+                for pnt_j in plt_pts_j:
                     pnt_j = TrajectoryPoint(pnt_j, user_j)
                     pnt_j_count = pnt_j_count + 1
                     total_count = total_count + 1
@@ -203,9 +258,10 @@ def main():
     deltas = []
     deltas.append([100, 300])
     deltas.append([500, 600])
+    # deltas.append([10000, 12000])
     deltas.append([1000, 1200])
 
-    # generate_contact_points(data, deltas)
+    generate_contact_points(data, deltas)
     # generate_contacts(data, deltas)
     generate_graph(data, deltas)
 
