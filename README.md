@@ -2,7 +2,7 @@
 
 ### Build Status
 
-[![Build Status](https://travis-ci.com/matthewzimmer/trajectory-contact-networks.svg?branch=master)](Build Status)
+![Build Status](https://travis-ci.com/matthewzimmer/trajectory-contact-networks.svg?branch=master)
 
 ### Python Environments
 By default, when you create an environment named `venv` in the project root directory, 
