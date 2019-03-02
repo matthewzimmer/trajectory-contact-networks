@@ -1,5 +1,9 @@
 # Contact Network from Trajectories
 
+### Build Status
+
+[![Build Status](https://travis-ci.com/matthewzimmer/trajectory-contact-networks.svg?branch=master)](Build Status)
+
 ### Python Environments
 By default, when you create an environment named `venv` in the project root directory, 
 most .gitignore templates ignore this directory. 
