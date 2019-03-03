@@ -4,6 +4,23 @@
 
 ![Build Status](https://travis-ci.com/matthewzimmer/trajectory-contact-networks.svg?branch=master)
 
+### Automated Testing 
+
+We leverage `py.test`:
+
+https://docs.python-guide.org/writing/tests/#py-test
+
+https://docs.pytest.org/en/latest/
+
+Usage: 
+
+```
+$ pytest
+```
+
+
+
+
 ### Python Environments
 By default, when you create an environment named `venv` in the project root directory, 
 most .gitignore templates ignore this directory. 

@@ -197,7 +197,7 @@ def generate_graph(data, deltas):
 
 
 def main():
-    data = GeolifeData().load()
+    data = GeolifeData().output()
 
     # [ds, dt] ==> [meters from each other,  seconds apart]
     deltas = []
