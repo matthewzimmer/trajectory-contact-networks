@@ -15,9 +15,6 @@ class GeolifeData(PipelineOp):
         self.__users = []
         self.__trajectories = {}
 
-    def load(self):
-        return self.perform()
-
     def perform(self):
         self.__load_trajectories()
         return self._apply_output({'users': self.users(), 'trajectories': self.trajectories()})
@@ -36,7 +33,7 @@ class GeolifeData(PipelineOp):
         trajectories = self.__trajectories
         if len(trajectories) <= 0:
             self.__users = np.sort(np.array([
-                uid for uid in os.listdir('app/data/geolife/Data') if re.findall('\d{3}', uid)
+                uid for uid in os.listdir('app/data/geolife/Data') if re.findall(r'\d{3}', uid)
             ]))
             for uid in self.__users:
                 trajectories[uid] = trajectories.get(uid, self.load_user_trajectory_points(uid))
