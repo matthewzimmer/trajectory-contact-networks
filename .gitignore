@@ -105,3 +105,6 @@ venv.bak/
 
 Geolife Trajectories 1.3.zip
 Geolife Trajectories 1.3/
+
+.idea
+*.iml

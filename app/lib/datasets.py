@@ -20,6 +20,7 @@ class GeolifeData(PipelineOp):
         return self._apply_output({'users': self.users(), 'trajectories': self.trajectories()})
 
     def users(self):
+        self.__load_trajectories()
         return self.__users
 
     def trajectories(self, uid=None):
