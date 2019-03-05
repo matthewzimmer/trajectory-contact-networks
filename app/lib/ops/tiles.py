@@ -20,15 +20,15 @@ class GenerateUserTilesOp(PipelineOp):
     def perform(self):
         for pt, plt in self.user_trajectories_pts:
             traj_pt = TrajectoryPoint(pt, self.uid)
-            lat = traj_pt.lat
-            lon = traj_pt.lon
+            lat = self.meters_for_lat_lon(traj_pt.lat)
+            lon = self.meters_for_lat_lon(traj_pt.lon)
             t = traj_pt.t
 
-            local_lat = round(math.floor(lat/self.ds) * self.ds, 1)
-            local_lon = round(math.floor(lon/self.ds) * self.ds, 1)
-            local_t = round(math.floor(t/self.dt) * self.dt, 1)
+            local_lat = math.floor(lat/self.ds) * self.ds
+            local_lon = math.floor(lon/self.ds) * self.ds
+            local_t = math.floor(t/self.dt) * self.dt
 
-            tile_hash = "lat{}_lon{}".format(local_lat, local_lon)
+            tile_hash = "lat{}_lon{}_t{}".format(local_lat, local_lon, local_t)
             tile = self.hash_tile(tile_hash)
             tile.append((traj_pt, self.global_lat + local_lat, self.global_lon + local_lon, local_t, self.ds, self.dt))
 
@@ -40,3 +40,6 @@ class GenerateUserTilesOp(PipelineOp):
             tile = []
             self.tiles[tile_hash] = tile
         return tile
+
+    def meters_for_lat_lon(self, lat_lon):
+        return lat_lon

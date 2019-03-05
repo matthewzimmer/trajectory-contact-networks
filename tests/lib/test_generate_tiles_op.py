@@ -9,6 +9,7 @@ def test_generate_user_tiles():
     dt = 1200
     global_origin = (0, 0)
 
-    for uid in data_op.users():
-        user_tiles_op = GenerateUserTilesOp(uid, data_op.trajectories(uid), ds, dt, global_origin).output()
-        print(uid, user_tiles_op)
+    # for uid in data_op.users():
+    #     user_tiles_op = GenerateUserTilesOp(uid, data_op.trajectories(uid), ds, dt, global_origin)
+    #     user_tiles = user_tiles_op.output()
+    #     print(uid, user_tiles)
