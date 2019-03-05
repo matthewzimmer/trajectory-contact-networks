@@ -30,7 +30,7 @@ class GenerateUserTilesOp(PipelineOp):
 
             tile_hash = "lat{}_lon{}".format(local_lat, local_lon)
             tile = self.hash_tile(tile_hash)
-            tile.append((pt, local_lat, local_lon, local_t, self.ds, self.dt))
+            tile.append((traj_pt, self.global_lat + local_lat, self.global_lon + local_lon, local_t, self.ds, self.dt))
 
         return self._apply_output(self.tiles)
 
