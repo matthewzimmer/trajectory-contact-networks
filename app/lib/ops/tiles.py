@@ -1,9 +1,10 @@
 import math
-import numpy as np
-
+from pyproj import Proj, transform
 from app.lib.pipeline_ops import PipelineOp
 from app.lib.points import TrajectoryPoint
+def transform_geo(df):
 
+    return df
 
 class GenerateUserTilesOp(PipelineOp):
     def __init__(self, tiles, user_id, user_trajectory_pts, ds, dt, global_origin):
@@ -20,8 +21,8 @@ class GenerateUserTilesOp(PipelineOp):
     def perform(self):
         for pt, plt in self.user_trajectories_pts:
             traj_pt = TrajectoryPoint(pt, self.uid)
-            lat = self.meters_for_lat_lon(traj_pt.lat)
-            lon = self.meters_for_lat_lon(traj_pt.lon)
+            lat, lon = self.coordinate_conversion(traj_pt.lat, traj_pt.lon)
+            # lon = self.coordinate_conversion(traj_pt.lon)
             t = traj_pt.t
 
             local_lat = math.floor(lat/self.ds) * self.ds
@@ -42,5 +43,10 @@ class GenerateUserTilesOp(PipelineOp):
             self.tiles[tile_hash] = tile
         return tile
 
-    def meters_for_lat_lon(self, lat_lon):
-        return lat_lon
+    def coordinate_conversion(self, x, y):
+        p1 = Proj(proj='latlong', datum='WGS84')
+        # You can also search for UTM projections in the epsg reference website
+        p3 = Proj(proj='utm', zone=49, datum='WGS84')
+        # Call the tranform method and store the tranformed variables
+        x, y = transform(p1, p3, x, y)
+        return x, y
