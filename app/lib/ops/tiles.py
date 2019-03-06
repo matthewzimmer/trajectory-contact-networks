@@ -6,7 +6,7 @@ from app.lib.points import TrajectoryPoint
 
 
 class GenerateUserTilesOp(PipelineOp):
-    def __init__(self, user_id, user_trajectory_pts, ds, dt, global_origin):
+    def __init__(self, tiles, user_id, user_trajectory_pts, ds, dt, global_origin):
         PipelineOp.__init__(self)
         self.uid = user_id
         self.user_trajectories_pts = user_trajectory_pts
@@ -15,7 +15,7 @@ class GenerateUserTilesOp(PipelineOp):
         self.global_origin = global_origin
         self.global_lat = global_origin[0]
         self.global_lon = global_origin[1]
-        self.tiles = {}
+        self.tiles = tiles
 
     def perform(self):
         for pt, plt in self.user_trajectories_pts:
@@ -30,14 +30,15 @@ class GenerateUserTilesOp(PipelineOp):
 
             tile_hash = "lat{}_lon{}_t{}".format(local_lat, local_lon, local_t)
             tile = self.hash_tile(tile_hash)
-            tile.append((traj_pt, self.global_lat + local_lat, self.global_lon + local_lon, local_t, self.ds, self.dt))
+            # tile.append((traj_pt, self.global_lat + local_lat, self.global_lon + local_lon, local_t, self.ds, self.dt))
+            tile.add(traj_pt.uid)
 
         return self._apply_output(self.tiles)
 
     def hash_tile(self, tile_hash):
         tile = self.tiles.get(tile_hash, None)
         if tile is None:
-            tile = []
+            tile = set()
             self.tiles[tile_hash] = tile
         return tile
 
