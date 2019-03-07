@@ -15,3 +15,4 @@ def test_generate_user_tiles():
         user_tiles_op = GenerateUserTilesOp(tiles, uid, data_op.trajectories(uid), ds, dt, global_origin)
         updated_tiles = user_tiles_op.output()
         print(updated_tiles)
+        
