@@ -171,7 +171,7 @@ def generate_contact_points(data, deltas):
 
 
 def generate_graph(data, deltas):
-    largest_comps, ave_degrees = [], []
+    largest_comps, avg_degrees = [], []
     results_delta = []
     for d in deltas:
         ds, dt = d
@@ -189,11 +189,11 @@ def generate_graph(data, deltas):
                 ('002', '005', 45.007548, 16.32172650000001, 14785351.0000029),
                 ('002', '001', 45.007548, 16.32172650000001, 14785351.0000029)
             ]
-        largest_component, ave_degree = grapher(contacts)
+        largest_component, avg_degree = grapher(contacts)
         largest_comps.append(largest_component)
-        ave_degrees.append(ave_degree)
+        avg_degrees.append(avg_degree)
         results_delta.append('{}m {}s'.format(ds, dt))
-    save_results(largest_comps, ave_degrees, results_delta)
+    save_results(largest_comps, avg_degrees, results_delta)
 
 
 def main():

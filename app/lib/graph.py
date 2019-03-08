@@ -48,4 +48,4 @@ def save_results(largest_comps, ave_degrees, deltas):
         plt.title("Average Degree of Nodes")
         plt.ylabel("Mean Degree")
         plt.xlabel("Delta settings")
-        plt.savefig('app/viz/Ave_Degree_Results.png', bbox_inches='tight')
+        plt.savefig('app/viz/Avg_Degree_Results.png', bbox_inches='tight')
