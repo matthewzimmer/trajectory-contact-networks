@@ -3,6 +3,7 @@ from itertools import combinations
 from app.lib.data_serializer import DataSerializer
 from app.lib.datasets import GeolifeData
 from app.lib.graph import grapher, save_results
+from app.lib.ops.tiles import GraphContactPointsOp, GenerateTilesOp
 from app.lib.points import TrajectoryPoint, ContactPoint
 
 
@@ -200,10 +201,7 @@ def main():
     data = GeolifeData().output()
 
     # [ds, dt] ==> [meters from each other,  seconds apart]
-    deltas = []
-    deltas.append([100, 300])
-    deltas.append([500, 600])
-    deltas.append([1000, 1200])
+    deltas = [[100, 300], [500, 600], [1000, 1200]]
 
     # generate_contact_points(data, deltas)
     # generate_contacts(data, deltas)

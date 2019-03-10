@@ -54,14 +54,14 @@ class ContactPoint(TrajectoryPoint):
     def __str__(self):
         return '[user_i: {}  user_j: {}  dist: {}  tdelta: {}  avg_time: {}  avg_lat: {}  avg_lon: {}  avg_alt: {}  ' \
                'traj_i: {}  traj_j: {}]'.format(
-            self.p1.uid,
-            self.p2.uid,
-            self.dist_apart(),
-            abs(self.p1.t - self.p2.t),
-            self.t,
-            self.lat,
-            self.lon,
-            self.alt,
-            self.traj_plt_p1,
-            self.traj_plt_p2
+                self.p1.uid,
+                self.p2.uid,
+                self.dist_apart(),
+                abs(self.p1.t - self.p2.t),
+                self.t,
+                self.lat,
+                self.lon,
+                self.alt,
+                self.traj_plt_p1,
+                self.traj_plt_p2
         )
