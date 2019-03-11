@@ -4,3 +4,4 @@ pandas==0.24.1
 python-geohash==0.8.5
 pytest==4.3.0
 matplotlib==2.2.3
+hypothesis==4.10.0
