@@ -1,4 +1,4 @@
-from math import radians, cos, sin, asin, pi, sqrt, floor
+from math import radians, cos, sin, asin, pi, sqrt
 import itertools
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -34,11 +34,11 @@ class GenerateTilesOp(PipelineOp):
                 lat, lon = self.meters_for_lat_lon(traj_pt.lat, traj_pt.lon)
                 t = traj_pt.t
 
-                local_lat_meters = int(floor(lat / self.ds)) * self.ds
-                local_lon_meters = int(floor(lon / self.ds)) * self.ds
+                local_lat_meters = int(lat / self.ds) * self.ds
+                local_lon_meters = int(lon / self.ds) * self.ds
 
                 local_lat, local_lon = self.get_lat_lng_from_meters(local_lat_meters, local_lon_meters)
-                local_t = floor(t / self.dt) * self.dt
+                local_t = int(t / self.dt) * self.dt
 
                 tile_hash = "lat{}_lon{}_t{}".format(local_lat, local_lon, local_t)
                 tile = self.hash_tile(tile_hash)
@@ -88,6 +88,7 @@ class GraphContactPointsOp(PipelineOp):
         PipelineOp.__init__(self)
         self.hashed_tiles = hashed_tiles
         self.weight = weight
+        assert(weight in ['dist_weight', 'count_weight'])
 
     def perform(self):
         tiles = self.hashed_tiles.items()
@@ -97,9 +98,8 @@ class GraphContactPointsOp(PipelineOp):
         delta = []
         for tile_hash, uids in tiles:
             if not tile_hash:
-                graph_generated = False
-                png_filepath = 'app/data/graphs/no_tiles_from_data.png'
-                return self._apply_output({"png_filepath": png_filepath, "graph_generated": graph_generated})
+                graph_filepath = 'app/data/graphs/no_tiles_from_data.png'
+                return self._apply_output({"graph_filepath": graph_filepath, "graph_generated": False})
             if not delta:
                 delta = uids[0][3]
             if len(uids) > 1:
@@ -113,19 +113,26 @@ class GraphContactPointsOp(PipelineOp):
             op_count += 1
             print("Remaining Tiles: {}".format(tile_count - op_count))
 
-        # png_filepath = 'app/data/graphs/{}.png'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt')
+        # graph_filepath = 'app/data/graphs/{}.png'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt')
         # nx.draw_circular(graph, with_labels=True)  # spectral circular random
-        # plt.savefig(png_filepath, bbox_inches='tight')
-        png_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_' + str(self.weight))
-        nx.write_gml(graph, png_filepath)
-        
-        graph_generated = True
+        # plt.savefig(graph_filepath, bbox_inches='tight')
+
+        gml_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_' + str(self.weight))
+        nx.write_gml(graph, gml_filepath)
+
         # largest_comp = find_largest_component(graph)
         # avg_degree = find_average_degree(graph)
         # graph_results(largest_comp, avg_degree, deltas)
-        return self._apply_output({"png_filepath": png_filepath, "graph_generated": graph_generated})
+        return self._apply_output({"graph_filepath": gml_filepath, "graph_generated": True})
 
-    def hottest_tile(self):
+
+class GraphHottestPointsOp(PipelineOp):
+    def __init__(self, hashed_tiles, weight):
+        PipelineOp.__init__(self)
+        self.hashed_tiles = hashed_tiles
+        self.weight = weight
+
+    def perform(self):
         user_count_in_tiles = [len(uids) for tile_hash, uids in self.hashed_tiles.items()]
         hot_zone_count = max(user_count_in_tiles)
         graph = nx.Graph()
@@ -141,15 +148,21 @@ class GraphContactPointsOp(PipelineOp):
                     elif self.weight == 'count_weight':
                         graph = weight_by_distance(graph, user_pair[0], user_pair[1])
 
-        png_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_hot_zones')
-        nx.write_gml(graph, png_filepath)
+        gml_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_hot_zones')
+        nx.write_gml(graph, gml_filepath)
+        return self._apply_output({"gml_filepath": gml_filepath, "graph_generated": True})
 
 
 def weight_by_count(graph, user1, user2):
+    distance = dist_apart(user1[1], user2[1])
+    time_difference = abs(user1[2] - user2[2])
+
     if not graph.has_edge(user1, user2):
-        graph.add_edge(user1, user2, weight=1)
+        graph.add_edge(user1, user2, weight=1, ds=time_difference, distance=distance)
     else:
         graph[user1][user2]['weight'] += 1
+        graph[user1[0]][user2[0]]['ds'] = time_difference
+        graph[user1[0]][user2[0]]['dt'] = distance
     return graph
 
 
