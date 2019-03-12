@@ -72,7 +72,7 @@ compared trajectories are both _n_?
 
 Implement a function that takes trajectories from _m_ users (each user may have
 potentially multiple associated trajectories) and computes contact points from
-all pairings of trajectories from dierent users in the form:
+all pairings of trajectories from different users in the form:
 `C = {(ui, uj, lat0, lon0, t0) ...}` (The format is the same as the above, only the
 user ids are included for each contact).
 
