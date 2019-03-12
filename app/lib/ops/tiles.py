@@ -10,6 +10,9 @@ from app.lib.points import TrajectoryPoint
 
 
 class GenerateTilesOp(PipelineOp):
+    EARTH_CIRCUMFERENCE_AT_EQUATOR_METERS = 40075160
+    EARTH_CIRCUMFERENCE_THROUGH_POLES_METERS = 40008000
+
     """
     Generates a dictionary of tiles where the key is a hash
     of lat/lon/time and the value is a set of unique user
@@ -50,7 +53,7 @@ class GenerateTilesOp(PipelineOp):
     def hash_tile(self, tile_hash):
         """
         Returns an existing tile based on tile hash if already generated.
-        Otherwise, generates and returns a new set for the given tile_hash.
+        Otherwise, generates and returns a new list for the given tile_hash.
         """
         tile = self.tiles.get(tile_hash, None)
         if tile is None:
@@ -59,18 +62,21 @@ class GenerateTilesOp(PipelineOp):
         return tile
 
     def meters_for_lat_lon(self, lat, lon):
-        """ Calculates X and Y distances in meters.
+        """
+        Calculates X and Y distances in meters.
+
+        https://stackoverflow.com/a/3024728
         """
         delta_latitude = lat - self.relative_null_lat
         delta_longitude = lon - self.relative_null_lon
-        latitude_circumference = 40075160 * cos(self.deg_to_rad(self.relative_null_lat))
+        latitude_circumference = self.EARTH_CIRCUMFERENCE_AT_EQUATOR_METERS * cos(self.deg_to_rad(self.relative_null_lat))
         result_x = delta_longitude * latitude_circumference / 360
-        result_y = delta_latitude * 40008000 / 360
+        result_y = delta_latitude * self.EARTH_CIRCUMFERENCE_THROUGH_POLES_METERS / 360
         return result_x, result_y
 
     def get_lat_lng_from_meters(self, lat, lon):
-        latitude_circumference = 40075160 * cos(self.deg_to_rad(self.relative_null_lat))
-        delta_latitude = lon * 360 / 40008000
+        latitude_circumference = self.EARTH_CIRCUMFERENCE_AT_EQUATOR_METERS * cos(self.deg_to_rad(self.relative_null_lat))
+        delta_latitude = lon * 360 / self.EARTH_CIRCUMFERENCE_THROUGH_POLES_METERS
         delta_longitude = lat * 360 / latitude_circumference
 
         result_lat = delta_latitude + self.relative_null_lat
