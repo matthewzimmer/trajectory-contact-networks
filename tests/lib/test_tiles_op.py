@@ -1,14 +1,17 @@
 from app.lib.ops.tiles import GenerateTilesOp, GraphContactPointsOp
+from hypothesis import given, example
+import hypothesis.strategies as st
 
 
-def test_generate_user_tiles():
-    ds = 1000
-    dt = 1200
-    global_origin = (39.75872, 116.04142)
-
+@given(ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
+@example(ds=1000, dt=1200, global_origin=(39.75872, 116.04142))
+@example(ds=500, dt=600, global_origin=(39.75872, 116.04142))
+@example(ds=100, dt=300, global_origin=(39.75872, 116.04142))
+def test_generate_user_tiles(ds, dt, global_origin):
     # Commented out due to Travis resource limitations
     # tiles = GenerateTilesOp(ds, dt, global_origin).output()
     # print(tiles)
+    pass
 
 
 def test_generate_contacts_by_invalid_weight():
@@ -25,12 +28,11 @@ def test_generate_contacts_bad_tile_hash():
     assert result['graph_filepath'] == 'app/data/graphs/no_tiles_from_data.png'
 
 
-def test_generate_contacts_by_count_weight():
-    # select granularity
-    ds = 100  # 1000
-    dt = 300  # 1200
-    global_origin = (39.75872, 116.04142)
-
+@given(ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
+@example(ds=1000, dt=1200, global_origin=(39.75872, 116.04142))
+@example(ds=500, dt=600, global_origin=(39.75872, 116.04142))
+@example(ds=100, dt=300, global_origin=(39.75872, 116.04142))
+def test_generate_contacts_by_count_weight(ds, dt, global_origin):
     tiles = GenerateTilesOp(ds, dt, global_origin).output()
 
     # find contact points involving most users. (most occupied tile/s)
@@ -41,12 +43,11 @@ def test_generate_contacts_by_count_weight():
     assert result['graph_generated'] is True
 
 
-def test_generate_contacts_by_distance():
-    # select granularity
-    ds = 100  # 1000
-    dt = 300  # 1200
-    global_origin = (39.75872, 116.04142)
-
+@given(ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
+@example(ds=1000, dt=1200, global_origin=(39.75872, 116.04142))
+@example(ds=500, dt=600, global_origin=(39.75872, 116.04142))
+@example(ds=100, dt=300, global_origin=(39.75872, 116.04142))
+def test_generate_contacts_by_distance(ds, dt, global_origin):
     tiles = GenerateTilesOp(ds, dt, global_origin).output()
 
     # find contact points involving most users. (most occupied tile/s)
@@ -55,4 +56,3 @@ def test_generate_contacts_by_distance():
     # Test that a graph has been generated
     result = graph_op.output()
     assert result['graph_generated'] is True
-
