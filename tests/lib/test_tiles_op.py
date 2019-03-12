@@ -18,6 +18,13 @@ def test_generate_contacts_by_invalid_weight():
         assert True
 
 
+def test_generate_contacts_bad_tile_hash():
+    op = GraphContactPointsOp(hashed_tiles={None: []}, weight='count_weight')
+    result = op.output()
+    assert result['graph_generated'] is False
+    assert result['graph_filepath'] == 'app/data/graphs/no_tiles_from_data.png'
+
+
 def test_generate_contacts_by_count_weight():
     # select granularity
     ds = 100  # 1000
