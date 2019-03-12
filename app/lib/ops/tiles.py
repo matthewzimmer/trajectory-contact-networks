@@ -88,6 +88,7 @@ class GraphContactPointsOp(PipelineOp):
         PipelineOp.__init__(self)
         self.hashed_tiles = hashed_tiles
         self.weight = weight
+        assert(weight in ['dist_weight', 'count_weight'])
 
     def perform(self):
         tiles = self.hashed_tiles.items()
@@ -97,9 +98,8 @@ class GraphContactPointsOp(PipelineOp):
         delta = []
         for tile_hash, uids in tiles:
             if not tile_hash:
-                graph_generated = False
-                png_filepath = 'app/data/graphs/no_tiles_from_data.png'
-                return self._apply_output({"png_filepath": png_filepath, "graph_generated": graph_generated})
+                graph_filepath = 'app/data/graphs/no_tiles_from_data.png'
+                return self._apply_output({"graph_filepath": graph_filepath, "graph_generated": False})
             if not delta:
                 delta = uids[0][3]
             if len(uids) > 1:
@@ -113,17 +113,17 @@ class GraphContactPointsOp(PipelineOp):
             op_count += 1
             print("Remaining Tiles: {}".format(tile_count - op_count))
 
-        # png_filepath = 'app/data/graphs/{}.png'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt')
+        # graph_filepath = 'app/data/graphs/{}.png'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt')
         # nx.draw_circular(graph, with_labels=True)  # spectral circular random
-        # plt.savefig(png_filepath, bbox_inches='tight')
-        png_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_' + str(self.weight))
-        nx.write_gml(graph, png_filepath)
-        
-        graph_generated = True
+        # plt.savefig(graph_filepath, bbox_inches='tight')
+
+        gml_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_' + str(self.weight))
+        nx.write_gml(graph, gml_filepath)
+
         # largest_comp = find_largest_component(graph)
         # avg_degree = find_average_degree(graph)
         # graph_results(largest_comp, avg_degree, deltas)
-        return self._apply_output({"png_filepath": png_filepath, "graph_generated": graph_generated})
+        return self._apply_output({"graph_filepath": gml_filepath, "graph_generated": True})
 
 
 class GraphHottestPointsOp(PipelineOp):
@@ -148,10 +148,9 @@ class GraphHottestPointsOp(PipelineOp):
                     elif self.weight == 'count_weight':
                         graph = weight_by_distance(graph, user_pair[0], user_pair[1])
 
-        png_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_hot_zones')
-        nx.write_gml(graph, png_filepath)
-        graph_generated = True
-        return self._apply_output({"png_filepath": png_filepath, "graph_generated": graph_generated})
+        gml_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_hot_zones')
+        nx.write_gml(graph, gml_filepath)
+        return self._apply_output({"gml_filepath": gml_filepath, "graph_generated": True})
 
 
 def weight_by_count(graph, user1, user2):
