@@ -1,4 +1,3 @@
-import snap
 def test_snap():
     status = False
     try:
