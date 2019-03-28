@@ -1,7 +1,7 @@
 from math import radians, cos, sin, asin, pi, sqrt
 import itertools
 import networkx as nx
-import matplotlib.pyplot as plt
+import numpy as np
 
 
 from app.lib.datasets import GeolifeData
@@ -19,11 +19,11 @@ class GenerateTilesOp(PipelineOp):
     ids that have points within that encoded
     spaciotemporal tile (cube).
     """
-    def __init__(self, ds, dt, relative_null_point=(39.75872, 116.04142)):
+    def __init__(self, users, ds, dt, relative_null_point=(39.75872, 116.04142)):
         PipelineOp.__init__(self)
         self.tiles = {}
         self.data_op = GeolifeData()
-        self.users = self.data_op.users()
+        self.users = np.array(users)
         self.ds = ds
         self.dt = dt
         self.relative_null_lat = relative_null_point[0]
@@ -45,9 +45,10 @@ class GenerateTilesOp(PipelineOp):
 
                 tile_hash = "lat{}_lon{}_t{}".format(local_lat, local_lon, local_t)
                 tile = self.hash_tile(tile_hash)
+                # extract first column (uid)
                 users = [sub_list[0] for sub_list in tile]
                 if traj_pt.uid not in users:
-                    tile.append([traj_pt.uid, (traj_pt.lat, traj_pt.lon), t, (self.ds, self.dt)])
+                    tile.append([traj_pt.uid, traj_pt.lat, traj_pt.lon, t, self.ds, self.dt])
         return self._apply_output(self.tiles)
 
     def hash_tile(self, tile_hash):
@@ -97,24 +98,34 @@ class GraphContactPointsOp(PipelineOp):
         assert(weight in ['dist_weight', 'count_weight'])
 
     def perform(self):
+        contact_points = [['uid1', 'uid2', 'ds', 'dt', 'tile_hash', 'dist_apart', 'time_diff', 'lat1', 'lat2', 'lon1', 'lon2', 't1', 't2']]
         tiles = self.hashed_tiles.items()
         tile_count = len(tiles)
         op_count = 0
         graph = nx.Graph()
-        delta = []
+        delta = (None, None)
         for tile_hash, uids in tiles:
             if not tile_hash:
                 graph_filepath = 'app/data/graphs/no_tiles_from_data.png'
                 return self._apply_output({"graph_filepath": graph_filepath, "graph_generated": False})
             if not delta:
-                delta = uids[0][3]
+                delta = (uids[0][4], uids[0][5])
             if len(uids) > 1:
                 contact_pairs = itertools.combinations(uids, 2)
                 for user_pair in contact_pairs:
+                    user1, user2 = user_pair
+                    u1_uid, u1_lat, u1_lon, u1_t, u1_ds, u1_dt = user1
+                    u2_uid, u2_lat, u2_lon, u2_t, u2_ds, u2_dt = user2
+                    u1_lat_lon = (u1_lat, u1_lon)
+                    u2_lat_lon = (u2_lat, u2_lon)
+                    distance = dist_apart(u1_lat_lon, u2_lat_lon)
+                    time_difference = abs(u1_t - u2_t)
+                    contact_points.append([u1_uid, u2_uid, u1_ds, u1_dt, tile_hash, distance, time_difference, u1_lat, u2_lat, u1_lon, u2_lon, u1_t, u2_t])
+
                     if self.weight == 'dist_weight':
-                        graph = weight_by_count(graph, user_pair[0][0], user_pair[1][0])
+                        graph = weight_by_distance(graph, user1, user2)
                     elif self.weight == 'count_weight':
-                        graph = weight_by_distance(graph, user_pair[0], user_pair[1])
+                        graph = weight_by_count(graph, user1, user1)
 
             op_count += 1
             print("Remaining Tiles: {}".format(tile_count - op_count))
@@ -122,14 +133,14 @@ class GraphContactPointsOp(PipelineOp):
         # graph_filepath = 'app/data/graphs/{}.png'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt')
         # nx.draw_circular(graph, with_labels=True)  # spectral circular random
         # plt.savefig(graph_filepath, bbox_inches='tight')
-
-        gml_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_' + str(self.weight))
+        ds, dt = delta
+        gml_filepath = 'app/data/graphs/{}.gml'.format(str(ds) + 'ds_' + str(dt) + 'dt_' + str(self.weight))
         nx.write_gml(graph, gml_filepath)
 
         # largest_comp = find_largest_component(graph)
         # avg_degree = find_average_degree(graph)
         # graph_results(largest_comp, avg_degree, deltas)
-        return self._apply_output({"graph_filepath": gml_filepath, "graph_generated": True})
+        return self._apply_output({"contact_points": np.asarray(contact_points), "graph_filepath": gml_filepath, "graph_generated": True})
 
 
 class GraphHottestPointsOp(PipelineOp):
@@ -139,51 +150,72 @@ class GraphHottestPointsOp(PipelineOp):
         self.weight = weight
 
     def perform(self):
+        contact_points = [['uid1', 'uid2', 'ds', 'dt', 'tile_hash', 'dist_apart', 'time_diff', 'lat1', 'lat2', 'lon1', 'lon2', 't1', 't2']]
         user_count_in_tiles = [len(uids) for tile_hash, uids in self.hashed_tiles.items()]
         hot_zone_count = max(user_count_in_tiles)
         graph = nx.Graph()
-        delta = []
+        delta = (None, None)
         for tile_hash, uids in self.hashed_tiles.items():
             if not delta:
-                delta = uids[0][3]
+                delta = (uids[0][4], uids[0][5])
             if len(uids) == hot_zone_count:
                 contact_pairs = itertools.combinations(uids, 2)
                 for user_pair in contact_pairs:
-                    if self.weight == 'dist_weight':
-                        graph = weight_by_count(graph, user_pair[0][0], user_pair[1][0])
-                    elif self.weight == 'count_weight':
-                        graph = weight_by_distance(graph, user_pair[0], user_pair[1])
+                    user1, user2 = user_pair
+                    u1_uid, u1_lat, u1_lon, u1_t, u1_ds, u1_dt = user1
+                    u2_uid, u2_lat, u2_lon, u2_t, u2_ds, u2_dt = user2
+                    u1_lat_lon = (u1_lat, u1_lon)
+                    u2_lat_lon = (u2_lat, u2_lon)
+                    distance = dist_apart(u1_lat_lon, u2_lat_lon)
+                    time_difference = abs(u1_t - u2_t)
+                    contact_points.append([u1_uid, u2_uid, u1_ds, u1_dt, tile_hash, distance, time_difference, u1_lat, u2_lat, u1_lon, u2_lon, u1_t, u2_t])
 
-        gml_filepath = 'app/data/graphs/{}.gml'.format(str(delta[0]) + 'ds_' + str(delta[1]) + 'dt_hot_zones')
+                    if self.weight == 'dist_weight':
+                        graph = weight_by_distance(graph, user_pair[0], user_pair[1])
+                    elif self.weight == 'count_weight':
+                        graph = weight_by_count(graph, user_pair[0], user_pair[1])
+
+        ds, dt = delta
+        gml_filepath = 'app/data/graphs/{}.gml'.format(str(ds) + 'ds_' + str(dt) + 'dt_hot_zones')
         nx.write_gml(graph, gml_filepath)
-        return self._apply_output({"gml_filepath": gml_filepath, "graph_generated": True})
+
+        return self._apply_output({"contact_points": np.asarray(contact_points), "gml_filepath": gml_filepath, "graph_generated": True})
 
 
 def weight_by_count(graph, user1, user2):
-    distance = dist_apart(user1[1], user2[1])
-    time_difference = abs(user1[2] - user2[2])
+    u1_uid, u1_lat, u1_lon, u1_t, u1_ds, u1_dt = user1
+    u2_uid, u2_lat, u2_lon, u2_t, u2_ds, u2_dt = user2
+    u1_lat_lon = (u1_lat, u1_lon)
+    u2_lat_lon = (u2_lat, u2_lon)
+    distance = dist_apart(u1_lat_lon, u2_lat_lon)
+    time_difference = abs(u1_t - u2_t)
 
-    if not graph.has_edge(user1, user2):
-        graph.add_edge(user1, user2, weight=1, ds=time_difference, distance=distance)
+    if not graph.has_edge(u1_uid, u2_uid):
+        graph.add_edge(u1_uid, u2_uid, weight=1, ds=time_difference, distance=distance)
     else:
-        graph[user1][user2]['weight'] += 1
-        graph[user1[0]][user2[0]]['ds'] = time_difference
-        graph[user1[0]][user2[0]]['dt'] = distance
+        graph[u1_uid][u2_uid]['weight'] += 1
+        graph[u1_uid][u2_uid]['ds'] = time_difference
+        graph[u1_uid][u2_uid]['dt'] = distance
     return graph
 
 
 def weight_by_distance(graph, user1, user2):
-    distance = dist_apart(user1[1], user2[1])
-    delta = user1[3]
-    weight = delta[1] - dist_apart(user1[1], user2[1])
-    time_difference = abs(user1[2] - user2[2])
-    if not graph.has_edge(user1[0], user2[0]):
-        graph.add_edge(user1[0], user2[0], weight=weight, distance=distance, ds=time_difference, dt=distance)
+    u1_uid, u1_lat, u1_lon, u1_t, u1_ds, u1_dt = user1
+    u2_uid, u2_lat, u2_lon, u2_t, u2_ds, u2_dt = user2
+    u1_lat_lon = (u1_lat, u1_lon)
+    u2_lat_lon = (u2_lat, u2_lon)
+    distance = dist_apart(u1_lat_lon, u2_lat_lon)
+    time_difference = abs(u1_t - u2_t)
+    delta = (u1_ds, u1_dt)
+    ds, dt = delta
+    weight = dt - distance
+    if not graph.has_edge(u1_uid, u2_uid):
+        graph.add_edge(u1_uid, u2_uid, weight=weight, distance=distance, ds=time_difference, dt=distance)
     else:
-        if graph[user1[0]][user2[0]]['weight'] > weight:
-            graph[user1[0]][user2[0]]['weight'] = weight
-            graph[user1[0]][user2[0]]['ds'] = time_difference
-            graph[user1[0]][user2[0]]['dt'] = distance
+        if graph[u1_uid][u2_uid]['weight'] > weight:
+            graph[u1_uid][u2_uid]['weight'] = weight
+            graph[u1_uid][u2_uid]['ds'] = time_difference
+            graph[u1_uid][u2_uid]['dt'] = distance
     return graph
 
 
@@ -197,8 +229,7 @@ def dist_apart(p1, p2):
     c = 2 * asin(sqrt(a))
     # Radius of earth in kilometers is 6371
     km = 6371 * c
-    dist_apart = km * 1000
-    return dist_apart
+    return km * 1000
 
 # def find_largest_component(graph):
 #     component_size = [len(c) for c in sorted(nx.connected_components(graph), key=len, reverse=True)]
