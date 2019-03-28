@@ -35,7 +35,7 @@ def test_generate_contacts_bad_tile_hash():
 
 
 @given(users=st.lists(st.integers()), ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
-@example(users=['000', '001'], ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+@example(users=ALL_USER_IDS, ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
 def test_generate_contacts_by_count_weight(users, ds, dt, global_origin):
     if len(global_origin) == 0:
         pass
@@ -54,7 +54,7 @@ def test_generate_contacts_by_count_weight(users, ds, dt, global_origin):
 
 
 @given(users=st.lists(st.integers()), ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
-@example(users=['000', '001'], ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+@example(users=ALL_USER_IDS, ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
 def test_generate_contacts_by_distance(users, ds, dt, global_origin):
     if len(global_origin) == 0:
         pass
