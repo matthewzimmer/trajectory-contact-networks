@@ -10,14 +10,14 @@ ALL_USER_IDS = [f'{i:03d}' for i in range(0, 100)]
 GLOBAL_ORIGIN = (39.75872, 116.04142)
 
 
-@given(users=st.lists(st.integers()), ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
-@example(users=['000', '001'], ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
-def test_generate_user_tiles(users, ds, dt, global_origin):
+# @given(users=st.lists(st.integers()), ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
+# @example(users=['000', '001'], ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+# def test_generate_user_tiles(users, ds, dt, global_origin):
     # Commented out due to Travis resource limitations
     # tiles = GenerateTilesOp(users, ds, dt, global_origin).output()
     # print(tiles)
     # assert len(tiles) == 5737
-    pass
+    # pass
 
 
 def test_generate_contacts_by_invalid_weight():
@@ -35,7 +35,9 @@ def test_generate_contacts_bad_tile_hash():
 
 
 @given(users=st.lists(st.integers()), ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
-@example(users=ALL_USER_IDS, ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+# @example(users=ALL_USER_IDS, ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+# @example(users=ALL_USER_IDS, ds=500, dt=600, global_origin=GLOBAL_ORIGIN)
+# @example(users=ALL_USER_IDS, ds=100, dt=300, global_origin=GLOBAL_ORIGIN)
 def test_generate_contacts_by_count_weight(users, ds, dt, global_origin):
     if len(global_origin) == 0:
         pass
@@ -54,7 +56,9 @@ def test_generate_contacts_by_count_weight(users, ds, dt, global_origin):
 
 
 @given(users=st.lists(st.integers()), ds=st.integers(), dt=st.integers(), global_origin=st.tuples())
-@example(users=ALL_USER_IDS, ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+# @example(users=ALL_USER_IDS, ds=1000, dt=1200, global_origin=GLOBAL_ORIGIN)
+# @example(users=ALL_USER_IDS, ds=500, dt=600, global_origin=GLOBAL_ORIGIN)
+# @example(users=ALL_USER_IDS, ds=100, dt=300, global_origin=GLOBAL_ORIGIN)
 def test_generate_contacts_by_distance(users, ds, dt, global_origin):
     if len(global_origin) == 0:
         pass
@@ -66,6 +70,7 @@ def test_generate_contacts_by_distance(users, ds, dt, global_origin):
 
     # Test that a graph has been generated
     result = graph_op.output()
+
     pd.DataFrame(result['contact_points']).to_csv("contact_points_by_distance_{}ds_{}dt.csv".format(ds, dt), header=None, index=None)
 
     assert result['graph_generated'] is True
